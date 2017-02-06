@@ -2,6 +2,8 @@
 
 Gochi is lightway WAF for Google AppEngine.
 
+Routing, logging, data source, full text search functions are easy to use.
+
 ## Usage
 
 ```
