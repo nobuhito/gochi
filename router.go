@@ -1,59 +1,140 @@
 package gochi
 
 import (
+	"fmt"
+	"io/ioutil"
+	"log"
 	"net/http"
+	"os"
+	"path"
 
-	"github.com/julienschmidt/httprouter"
+	"google.golang.org/appengine"
+
+	"golang.org/x/net/context"
+
+	"github.com/gorilla/mux"
 )
 
-// simple route
-
-func (g *Gochi) Static(path string) {
-	g.Router.NotFound = http.FileServer(http.Dir(path))
-}
-
-func (g *Gochi) Get(path string, handle httprouter.Handle) {
-	g.Router.GET(path, handle)
-}
-
-func (g *Gochi) Put(path string, handle httprouter.Handle) {
-	g.Router.PUT(path, handle)
-}
-
-func (g *Gochi) Delete(path string, handle httprouter.Handle) {
-	g.Router.DELETE(path, handle)
-}
-
-func (g *Gochi) Post(path string, handle httprouter.Handle) {
-	g.Router.POST(path, handle)
-}
-
-// group route
-
 type Group struct {
-	Group string
-	Gochi *Gochi
+	Parent string
+	Gochi  *Gochi
 }
 
-func (g *Gochi) Group(root string) Group {
-	return Group{
-		Group: root,
-		Gochi: g,
+func initRouter() *mux.Router {
+	router := mux.NewRouter().StrictSlash(true)
+	router.HandleFunc(`/{file:[^/.]*\.html}`, staticHandler)
+	router.HandleFunc("/", indexHtmlHandler)
+
+	static := router.PathPrefix("/static/")
+	static.Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("public"))))
+
+	return router
+}
+
+// type ParamBy func(key string) (value string)
+
+func (g *Gochi) ParamKeys(r *http.Request) (keys []string) {
+	queries := r.URL.Query()
+	for key, _ := range queries {
+		keys = append(keys, key)
+	}
+
+	vars := mux.Vars(r)
+	for key, _ := range vars {
+		keys = append(keys, key)
+	}
+
+	results := make([]string, 0, len(keys))
+	encountered := map[string]bool{}
+	for _, key := range keys {
+		if !encountered[key] {
+			encountered[key] = true
+			results = append(results, key)
+		}
+	}
+
+	return results
+}
+
+func (g *Gochi) Vars(r *http.Request, key string) string {
+	vars := mux.Vars(r)
+	ret, ok := vars[key]
+	if ok {
+		return ret
+	}
+
+	query := r.URL.Query()
+
+	ret = query.Get(key)
+	return ret
+}
+
+func responseToHandler(g *Gochi, h func(ctx context.Context, r *http.Request) Response) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := appengine.NewContext(r)
+		response := h(ctx, r)
+		response.Write(w)
 	}
 }
 
-func (grp *Group) Get(path string, handle httprouter.Handle) {
-	grp.Gochi.Get(grp.Group+path, handle)
+func (g *Gochi) GET(path string, h func(ctx context.Context, r *http.Request) Response) {
+	g.Router.HandleFunc(path, responseToHandler(g, h)).Methods("GET")
 }
 
-func (grp *Group) Put(path string, handle httprouter.Handle) {
-	grp.Gochi.Put(grp.Group+path, handle)
+func (g *Gochi) PUT(path string, h func(ctx context.Context, r *http.Request) Response) {
+	g.Router.HandleFunc(path, responseToHandler(g, h)).Methods("PUT")
 }
 
-func (grp *Group) Delete(path string, handle httprouter.Handle) {
-	grp.Gochi.Delete(grp.Group+path, handle)
+func (g *Gochi) POST(path string, h func(ctx context.Context, r *http.Request) Response) {
+	g.Router.HandleFunc(path, responseToHandler(g, h)).Methods("POST")
 }
 
-func (grp *Group) Post(path string, handle httprouter.Handle) {
-	grp.Gochi.Post(grp.Group+path, handle)
+func (g *Gochi) DELETE(path string, h func(ctx context.Context, r *http.Request) Response) {
+	g.Router.HandleFunc(path, responseToHandler(g, h)).Methods("DELETE")
+}
+
+func (g *Gochi) Group(path string) Group {
+	group := Group{Parent: path, Gochi: g}
+	return group
+}
+
+func (g *Group) GET(path string, h func(ctx context.Context, r *http.Request) Response) {
+	g.Gochi.Router.PathPrefix(g.Parent).Subrouter().HandleFunc(path, responseToHandler(g.Gochi, h)).Methods("GET")
+}
+
+func (g *Group) PUT(path string, h func(ctx context.Context, r *http.Request) Response) {
+	g.Gochi.Router.PathPrefix(g.Parent).Subrouter().HandleFunc(path, responseToHandler(g.Gochi, h)).Methods("PUT")
+}
+
+func (g *Group) POST(path string, h func(ctx context.Context, r *http.Request) Response) {
+	g.Gochi.Router.PathPrefix(g.Parent).Subrouter().HandleFunc(path, responseToHandler(g.Gochi, h)).Methods("POST")
+}
+
+func (g *Group) DELETE(path string, h func(ctx context.Context, r *http.Request) Response) {
+	g.Gochi.Router.PathPrefix(g.Parent).Subrouter().HandleFunc(path, responseToHandler(g.Gochi, h)).Methods("DELETE")
+}
+
+func indexHtmlHandler(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, "/index.html", http.StatusMovedPermanently)
+}
+
+func staticHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	file := vars["file"]
+	path := path.Join("public", file)
+	log.Printf("%s", path)
+	_, err := os.Stat(path)
+	if err == nil {
+		// tmpl := template.Must(template.ParseFiles("public/" + file))
+		// err := tmpl.Execute(w, nil)
+		bs, err := ioutil.ReadFile("public/" + file)
+		if err != nil {
+			fmt.Fprintf(w, "%s", err)
+		} else {
+			fmt.Fprintf(w, "%s", string(bs))
+		}
+	} else {
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprintf(w, "not found: %s", file)
+	}
 }

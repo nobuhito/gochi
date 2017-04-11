@@ -1,44 +1,43 @@
 package gochi
 
 import (
-	"net/http"
+	"golang.org/x/net/context"
 
-	"google.golang.org/appengine"
 	"google.golang.org/appengine/search"
 )
 
 type FullTextSearchContent struct {
 	ID   string
-	Html search.HTML
+	HTML search.HTML
 }
 
 func (g *Gochi) NewFullTextSearchContents(id string) FullTextSearchContent {
 	return FullTextSearchContent{
 		ID:   id,
-		Html: "",
+		HTML: "",
 	}
 }
 
 type FullTextSearch struct {
 	Namespace string
-	Request   *http.Request
+	Context   context.Context
 }
 
-func (g *Gochi) NewFullTextSearch(r *http.Request, namespace string) FullTextSearch {
+func (g *Gochi) NewFullTextSearch(ctx context.Context, namespace string) FullTextSearch {
 	return FullTextSearch{
 		Namespace: namespace,
-		Request:   r,
+		Context:   ctx,
 	}
 }
 
-func (s *FullTextSearch) Put(content FullTextSearchContent) error {
+func (s *FullTextSearch) Put(content *FullTextSearchContent) error {
 	index, err := search.Open(s.Namespace)
 	if err != nil {
 		return err
 	}
 
-	c := appengine.NewContext(s.Request)
-	_, err = index.Put(c, content.ID, content)
+	//c := appengine.NewContext(s.Request)
+	_, err = index.Put(s.Context, content.ID, content)
 	if err != nil {
 		return err
 	}
@@ -46,28 +45,35 @@ func (s *FullTextSearch) Put(content FullTextSearchContent) error {
 	return nil
 }
 
-func (s *FullTextSearch) Del(content FullTextSearchContent) error {
+func (s *FullTextSearch) Get(id string) (FullTextSearchContent, error) {
+	var content FullTextSearchContent
+
 	index, err := search.Open(s.Namespace)
 	if err != nil {
-		return err
+		return content, err
 	}
 
-	c := appengine.NewContext(s.Request)
-	return index.Delete(c, content.ID)
+	// c := appengine.NewContext(s.Request)
+	err = index.Get(s.Context, id, &content)
+	if err != nil {
+		return content, err
+	}
+
+	return content, nil
 }
 
-func (s *FullTextSearch) Get(query string) (ids []string, err error) {
+func (s *FullTextSearch) Search(query string) (ids []string, err error) {
 	var results []string
 	index, err := search.Open(s.Namespace)
 	if err != nil {
 		return results, err
 	}
 
-	c := appengine.NewContext(s.Request)
-	for item := index.Search(c, query, nil); ; {
+	// c := appengine.NewContext(s.Request)
+	for item := index.Search(s.Context, query, nil); ; {
 		var id string
 		var content FullTextSearchContent
-		id, err = item.Next(content)
+		id, err = item.Next(&content)
 		if err == search.Done {
 			break
 		}
@@ -79,4 +85,14 @@ func (s *FullTextSearch) Get(query string) (ids []string, err error) {
 	}
 
 	return results, nil
+}
+
+func (s *FullTextSearch) Del(content *FullTextSearchContent) error {
+	index, err := search.Open(s.Namespace)
+	if err != nil {
+		return err
+	}
+
+	// c := appengine.NewContext(s.Request)
+	return index.Delete(s.Context, content.ID)
 }

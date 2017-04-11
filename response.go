@@ -6,43 +6,71 @@ import (
 	"net/http"
 )
 
-type Response struct {
-	Status int
-	Body   interface{}
-	Header http.Header
-	InDev  bool
+type Response interface {
+	Write(w http.ResponseWriter)
+	Status() int
 }
 
-func (g *Gochi) NewResponse(w http.ResponseWriter) Response {
-	return Response{
-		Status: http.StatusOK,
-		Body:   nil,
-		Header: w.Header(),
-		InDev:  g.InDev,
-	}
+type baseResponse struct {
+	status int
+	body   []byte
+	header http.Header
 }
 
-func (res *Response) Write(w http.ResponseWriter) {
+func (r *baseResponse) Write(w http.ResponseWriter) {
 	header := w.Header()
-	for k, v := range res.Header {
+	for k, v := range r.header {
 		header[k] = v
 	}
-	w.WriteHeader(res.Status)
-	fmt.Fprintf(w, "%s", res.Body)
+	w.WriteHeader(r.status)
+	w.Write(r.body)
 }
 
-func (res *Response) WriteJSON(w http.ResponseWriter) {
-	if res.InDev {
-		res.Header.Set("Content-Type", "text/json: charset=UTF-8")
-	} else {
-		res.Header.Set("Content-Type", "application/json: charset=UTF-8")
+func (r *baseResponse) Status() int {
+	return r.status
+}
+
+func (r *baseResponse) Header(key, value string) *baseResponse {
+	r.header.Set(key, value)
+	return r
+}
+
+func ResponseEmpty(status int) *baseResponse {
+	return respond(status, nil)
+}
+
+func ResponseJSON(status int, body interface{}) *baseResponse {
+	return respond(status, body).Header("Content-Type", "application/json")
+}
+
+func ResponseCreated(status int, body interface{}, location string) *baseResponse {
+	return ResponseJSON(status, body).Header("Location", location)
+}
+
+func ResponseErrorJSON(status int, message string) *baseResponse {
+	return respond(status, message).Header("Content-Type", "application/json")
+}
+
+func respond(status int, body interface{}) *baseResponse {
+	var b []byte
+	var err error
+
+	switch t := body.(type) {
+	case string:
+		b = []byte(t)
+	default:
+		b, err = json.Marshal(body)
+		if err != nil {
+			return ResponseErrorJSON(
+				http.StatusInternalServerError,
+				fmt.Sprintf("faild marshalling json: %s", err.Error()),
+			)
+		}
 	}
 
-	header := w.Header()
-	for k, v := range res.Header {
-		header[k] = v
+	return &baseResponse{
+		status: status,
+		body:   b,
+		header: make(http.Header),
 	}
-	w.WriteHeader(res.Status)
-
-	json.NewEncoder(w).Encode(res.Body)
 }
