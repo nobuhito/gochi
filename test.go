@@ -6,28 +6,7 @@ import (
 	"reflect"
 	"runtime"
 	"testing"
-
-	"google.golang.org/appengine/aetest"
-
-	"golang.org/x/net/context"
-
-	"github.com/favclip/testerator"
 )
-
-func (g *Gochi) SpinUp(tb testing.TB) (inst aetest.Instance, ctx context.Context, spinDown func()) {
-	inst, ctx, err := testerator.SpinUp()
-	if err != nil {
-		g.Assert(tb, true, "could not spinup testerator.", err)
-	}
-
-	return inst, ctx, func() {
-		err := testerator.SpinDown()
-		if err != nil {
-			g.Assert(tb, true, "could not spindown testerator.", err)
-		}
-	}
-
-}
 
 // https://github.com/benbjohnson/testing
 
