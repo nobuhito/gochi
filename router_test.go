@@ -157,7 +157,7 @@ func TestStatic(t *testing.T) {
 func TestGroupPath(t *testing.T) {
 	g := New()
 
-	inst, _, spindown := g.SpinUp(t)
+	inst, _, spindown := SpinUp(t)
 	defer spindown()
 
 	req, err := inst.NewRequest("GET", "/api/test", nil)
@@ -183,7 +183,7 @@ func handler(ctx context.Context, r *http.Request) Response {
 func TestJSONWriter(t *testing.T) {
 	g := New()
 
-	inst, _, spindown := g.SpinUp(t)
+	inst, _, spindown := SpinUp(t)
 	defer spindown()
 
 	req, err := inst.NewRequest("GET", "/test", nil)
@@ -199,7 +199,7 @@ func TestJSONWriter(t *testing.T) {
 func TestMakeRes(t *testing.T) {
 	g := New()
 
-	inst, _, spindown := g.SpinUp(t)
+	inst, _, spindown := SpinUp(t)
 	defer spindown()
 
 	req, err := inst.NewRequest("GET", "/test", nil)

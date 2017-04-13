@@ -23,7 +23,7 @@ func hoge() Hogehoge {
 func TestDatastoreCRUD(t *testing.T) {
 	g := New()
 
-	_, ctx, spinDwon := g.SpinUp(t)
+	_, ctx, spinDwon := SpinUp(t)
 	defer spinDwon()
 
 	ds := g.NewDatastore(ctx)
@@ -52,7 +52,7 @@ func TestDatastoreCRUD(t *testing.T) {
 func TestGetNamespace(t *testing.T) {
 	g := New()
 
-	_, ctx, spinDwon := g.SpinUp(t)
+	_, ctx, spinDwon := SpinUp(t)
 	defer spinDwon()
 
 	ds := g.NewDatastore(ctx)
@@ -65,7 +65,7 @@ func TestGetNamespace(t *testing.T) {
 func TestSearchQuerySet(t *testing.T) {
 	g := New()
 
-	_, ctx, spinDwon := g.SpinUp(t)
+	_, ctx, spinDwon := SpinUp(t)
 	defer spinDwon()
 
 	ds := g.NewDatastore(ctx)
@@ -111,7 +111,7 @@ func TestSearchQuerySet(t *testing.T) {
 func TestPutMulti(t *testing.T) {
 	g := New()
 
-	_, ctx, spindown := g.SpinUp(t)
+	_, ctx, spindown := SpinUp(t)
 	defer spindown()
 
 	ds := g.NewDatastore(ctx)
@@ -131,7 +131,7 @@ func TestPutMulti(t *testing.T) {
 func TestGetBindAll(t *testing.T) {
 	g := New()
 
-	_, ctx, spindown := g.SpinUp(t)
+	_, ctx, spindown := SpinUp(t)
 	defer spindown()
 
 	ds := g.NewDatastore(ctx)
@@ -163,7 +163,7 @@ func TestGetBindAll(t *testing.T) {
 func TestDelAll(t *testing.T) {
 	g := New()
 
-	_, ctx, spindown := g.SpinUp(t)
+	_, ctx, spindown := SpinUp(t)
 	defer spindown()
 
 	ds := g.NewDatastore(ctx)

@@ -1,46 +1,41 @@
 package gochi
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"testing"
-
-	"google.golang.org/appengine/aetest"
 
 	"github.com/favclip/testerator"
 )
 
 func TestMain(m *testing.M) {
-	_, _, err := testerator.SpinUp()
+	env := "APPENGINE_DEV_APPSERVER"
 
-	if err != nil {
-		fmt.Printf(err.Error())
+	inDevServer := true
+	if os.Getenv(env) == "" {
+		inDevServer = false
+	}
+
+	if !inDevServer {
+		fmt.Printf("%s not set\n", env)
 		os.Exit(1)
-	}
 
-	status := m.Run()
+	} else {
+		_, _, err := testerator.SpinUp()
 
-	err = testerator.SpinDown()
-	if err != nil {
-		fmt.Printf(err.Error())
-		os.Exit(1)
-	}
-
-	os.Exit(status)
-}
-
-func (g *Gochi) SpinUp(tb testing.TB) (inst aetest.Instance, ctx context.Context, spinDown func()) {
-	inst, ctx, err := testerator.SpinUp()
-	if err != nil {
-		g.Assert(tb, true, "could not spinup testerator.", err)
-	}
-
-	return inst, ctx, func() {
-		err := testerator.SpinDown()
 		if err != nil {
-			g.Assert(tb, true, "could not spindown testerator.", err)
+			fmt.Printf(err.Error())
+			os.Exit(1)
 		}
-	}
 
+		status := m.Run()
+
+		err = testerator.SpinDown()
+		if err != nil {
+			fmt.Printf(err.Error())
+			os.Exit(1)
+		}
+
+		os.Exit(status)
+	}
 }

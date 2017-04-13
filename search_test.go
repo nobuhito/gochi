@@ -13,7 +13,7 @@ func TestSearchCRUD(t *testing.T) {
 
 	g := New()
 
-	_, ctx, spinDwon := g.SpinUp(t)
+	_, ctx, spinDwon := SpinUp(t)
 	defer spinDwon()
 
 	a := g.NewFullTextSearchContents(id)

@@ -1,0 +1,11 @@
+image: nobuhito/gae-go-alpine
+
+before_script:
+  - go get github.com/favclip/testerator
+
+stages:
+  - test
+
+test:
+  stage: test
+  script: /google-cloud-sdk/platform/google_appengine/goapp test

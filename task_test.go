@@ -33,7 +33,7 @@ func TestDelayGet(t *testing.T) {
 		{"/error", errorFunc, "null"},
 	}
 
-	inst, ctx, spindown := g_.SpinUp(t)
+	inst, ctx, spindown := SpinUp(t)
 	defer spindown()
 
 	for _, test := range tests {
