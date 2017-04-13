@@ -1,6 +1,7 @@
 image: nobuhito/gae-go-alpine
 
 before_script:
+  - go get github.com/gorilla/mux
   - go get github.com/favclip/testerator
 
 stages:

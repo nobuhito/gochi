@@ -3,7 +3,6 @@ package gochi
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"path"
@@ -122,7 +121,6 @@ func staticHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	file := vars["file"]
 	path := path.Join("public", file)
-	log.Printf("%s", path)
 	_, err := os.Stat(path)
 	if err == nil {
 		// tmpl := template.Must(template.ParseFiles("public/" + file))
