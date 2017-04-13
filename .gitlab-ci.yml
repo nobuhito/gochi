@@ -5,6 +5,7 @@ before_script:
   - go get github.com/favclip/testerator
   - go get github.com/mjibson/goon
   - go get github.com/satori/go.uuid
+  - go get cloud.google.com/go/storage
 
 stages:
   - test
