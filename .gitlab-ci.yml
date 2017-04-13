@@ -3,6 +3,8 @@ image: nobuhito/gae-go-alpine
 before_script:
   - go get github.com/gorilla/mux
   - go get github.com/favclip/testerator
+  - go get github.com/mjibson/goon
+  - go get github.com/satori/go.uuid
 
 stages:
   - test
