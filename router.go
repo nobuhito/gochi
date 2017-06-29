@@ -12,6 +12,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/gorilla/mux"
+	"github.com/luci/gae/impl/prod"
 )
 
 type Group struct {
@@ -70,7 +71,7 @@ func (g *Gochi) Vars(r *http.Request, key string) string {
 
 func responseToHandler(g *Gochi, h func(ctx context.Context, r *http.Request) Response) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := appengine.NewContext(r)
+		ctx := prod.Use(appengine.NewContext(r), r)
 		response := h(ctx, r)
 		response.Write(w)
 	}
