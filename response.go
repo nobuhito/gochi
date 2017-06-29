@@ -40,7 +40,7 @@ func ResponseEmpty(status int) *baseResponse {
 }
 
 func ResponseJSON(status int, body interface{}) *baseResponse {
-	return respond(status, body).Header("Content-Type", "application/json")
+	return respond(status, body).Header("Content-Type", "application/json; charset=utf8")
 }
 
 func ResponseCreated(status int, body interface{}, location string) *baseResponse {
@@ -48,7 +48,7 @@ func ResponseCreated(status int, body interface{}, location string) *baseRespons
 }
 
 func ResponseErrorJSON(status int, message string) *baseResponse {
-	return respond(status, message).Header("Content-Type", "application/json")
+	return respond(status, message).Header("Content-Type", "application/json; charset=utf8")
 }
 
 func respond(status int, body interface{}) *baseResponse {
