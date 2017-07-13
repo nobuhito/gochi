@@ -7,12 +7,7 @@ import (
 	"os"
 	"path"
 
-	"google.golang.org/appengine"
-
-	"golang.org/x/net/context"
-
 	"github.com/gorilla/mux"
-	"github.com/luci/gae/impl/prod"
 )
 
 type Group struct {
@@ -69,27 +64,26 @@ func (g *Gochi) Vars(r *http.Request, key string) string {
 	return ret
 }
 
-func responseToHandler(g *Gochi, h func(ctx context.Context, r *http.Request) Response) func(http.ResponseWriter, *http.Request) {
+func responseToHandler(g *Gochi, h func(r *http.Request) Response) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := prod.Use(appengine.NewContext(r), r)
-		response := h(ctx, r)
+		response := h(r)
 		response.Write(w)
 	}
 }
 
-func (g *Gochi) GET(path string, h func(ctx context.Context, r *http.Request) Response) {
+func (g *Gochi) GET(path string, h func(r *http.Request) Response) {
 	g.Router.HandleFunc(path, responseToHandler(g, h)).Methods("GET")
 }
 
-func (g *Gochi) PUT(path string, h func(ctx context.Context, r *http.Request) Response) {
+func (g *Gochi) PUT(path string, h func(r *http.Request) Response) {
 	g.Router.HandleFunc(path, responseToHandler(g, h)).Methods("PUT")
 }
 
-func (g *Gochi) POST(path string, h func(ctx context.Context, r *http.Request) Response) {
+func (g *Gochi) POST(path string, h func(r *http.Request) Response) {
 	g.Router.HandleFunc(path, responseToHandler(g, h)).Methods("POST")
 }
 
-func (g *Gochi) DELETE(path string, h func(ctx context.Context, r *http.Request) Response) {
+func (g *Gochi) DELETE(path string, h func(r *http.Request) Response) {
 	g.Router.HandleFunc(path, responseToHandler(g, h)).Methods("DELETE")
 }
 
@@ -98,19 +92,19 @@ func (g *Gochi) Group(path string) Group {
 	return group
 }
 
-func (g *Group) GET(path string, h func(ctx context.Context, r *http.Request) Response) {
+func (g *Group) GET(path string, h func(r *http.Request) Response) {
 	g.Gochi.Router.PathPrefix(g.Parent).Subrouter().HandleFunc(path, responseToHandler(g.Gochi, h)).Methods("GET")
 }
 
-func (g *Group) PUT(path string, h func(ctx context.Context, r *http.Request) Response) {
+func (g *Group) PUT(path string, h func(r *http.Request) Response) {
 	g.Gochi.Router.PathPrefix(g.Parent).Subrouter().HandleFunc(path, responseToHandler(g.Gochi, h)).Methods("PUT")
 }
 
-func (g *Group) POST(path string, h func(ctx context.Context, r *http.Request) Response) {
+func (g *Group) POST(path string, h func(r *http.Request) Response) {
 	g.Gochi.Router.PathPrefix(g.Parent).Subrouter().HandleFunc(path, responseToHandler(g.Gochi, h)).Methods("POST")
 }
 
-func (g *Group) DELETE(path string, h func(ctx context.Context, r *http.Request) Response) {
+func (g *Group) DELETE(path string, h func(r *http.Request) Response) {
 	g.Gochi.Router.PathPrefix(g.Parent).Subrouter().HandleFunc(path, responseToHandler(g.Gochi, h)).Methods("DELETE")
 }
 

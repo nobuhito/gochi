@@ -17,8 +17,10 @@ func TestMain(m *testing.M) {
 	}
 
 	if !inDevServer {
-		fmt.Printf("%s not set\n", env)
-		os.Exit(1)
+		// fmt.Printf("%s not set\n", env)
+		// os.Exit(1)
+		status := m.Run()
+		os.Exit(status)
 
 	} else {
 		_, _, err := testerator.SpinUp()

@@ -1,8 +1,7 @@
 package gochi
 
-//
 // Unimplemented
-//
+
 // func TestStorage(t *testing.T) {
 // 	g := New()
 //

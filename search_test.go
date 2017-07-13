@@ -1,3 +1,5 @@
+// +build appengine
+
 package gochi
 
 import (
@@ -11,10 +13,10 @@ func TestSearchCRUD(t *testing.T) {
 	html := "<div>hogehoge test 日本語</div>"
 	namespace := "namespace"
 
-	g := New()
-
-	_, ctx, spinDwon := SpinUp(t)
-	defer spinDwon()
+	g := New(TEST)
+	//
+	// _, ctx, spinDwon := SpinUp(t)
+	// defer spinDwon()
 
 	a := g.NewFullTextSearchContents(id)
 	a.HTML = search.HTML(html)

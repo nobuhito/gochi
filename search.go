@@ -1,6 +1,7 @@
 package gochi
 
 import (
+	"github.com/luci/gae/service/info"
 	"golang.org/x/net/context"
 
 	"google.golang.org/appengine/search"
@@ -31,6 +32,10 @@ func (g *Gochi) NewFullTextSearch(ctx context.Context, namespace string) FullTex
 }
 
 func (s *FullTextSearch) Put(content *FullTextSearchContent) error {
+	if info := info.GetTestable(s.Context); info != nil { // テスト時は機能させない
+		return nil
+	}
+
 	index, err := search.Open(s.Namespace)
 	if err != nil {
 		return err
@@ -46,27 +51,35 @@ func (s *FullTextSearch) Put(content *FullTextSearchContent) error {
 }
 
 func (s *FullTextSearch) Get(id string) (FullTextSearchContent, error) {
+	if info := info.GetTestable(s.Context); info != nil { // テスト時は機能させない
+		return FullTextSearchContent{}, nil
+	}
+
 	var content FullTextSearchContent
 
 	index, err := search.Open(s.Namespace)
 	if err != nil {
-		return content, err
+		return content, ErrorWrap(err)
 	}
 
 	// c := appengine.NewContext(s.Request)
 	err = index.Get(s.Context, id, &content)
 	if err != nil {
-		return content, err
+		return content, ErrorWrap(err)
 	}
 
 	return content, nil
 }
 
 func (s *FullTextSearch) Search(query string) (ids []string, err error) {
+	if info := info.GetTestable(s.Context); info != nil { // テスト時は機能させない
+		return []string{}, nil
+	}
+
 	var results []string
 	index, err := search.Open(s.Namespace)
 	if err != nil {
-		return results, err
+		return results, ErrorWrap(err)
 	}
 
 	// c := appengine.NewContext(s.Request)
@@ -78,7 +91,7 @@ func (s *FullTextSearch) Search(query string) (ids []string, err error) {
 			break
 		}
 		if err != nil {
-			return results, err
+			return results, ErrorWrap(err)
 		}
 
 		results = append(results, id)
@@ -88,6 +101,10 @@ func (s *FullTextSearch) Search(query string) (ids []string, err error) {
 }
 
 func (s *FullTextSearch) Del(content *FullTextSearchContent) error {
+	if info := info.GetTestable(s.Context); info != nil { // テスト時は機能させない
+		return nil
+	}
+
 	index, err := search.Open(s.Namespace)
 	if err != nil {
 		return err

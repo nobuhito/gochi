@@ -4,6 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"github.com/luci/luci-go/common/logging"
+
+	"golang.org/x/net/context"
 )
 
 type Response interface {
@@ -73,4 +77,12 @@ func respond(status int, body interface{}) *baseResponse {
 		body:   b,
 		header: make(http.Header),
 	}
+}
+
+func (g *Gochi) IfErrReturnJsonResponse(ctx context.Context, err error) Response {
+	if err != nil {
+		logging.Errorf(ctx, "%+v", err)
+		return ResponseJSON(http.StatusInternalServerError, err.Error())
+	}
+	return nil
 }

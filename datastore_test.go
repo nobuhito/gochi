@@ -1,12 +1,18 @@
+// +build !appengine
+
 package gochi
 
 import (
+	"context"
 	"strconv"
 	"testing"
+
+	"github.com/luci/gae/impl/memory"
+	"github.com/luci/gae/service/datastore"
 )
 
 type Hogehoge struct {
-	ID   string `goon:"id"`
+	ID   string `goon:"id" gae:"$id"`
 	Abcd string
 	Efg  int
 }
@@ -21,166 +27,125 @@ func hoge() Hogehoge {
 }
 
 func TestDatastoreCRUD(t *testing.T) {
+	t.Parallel()
+
 	g := New()
 
-	_, ctx, spinDwon := SpinUp(t)
-	defer spinDwon()
-
-	ds := g.NewDatastore(ctx)
+	ctx := memory.Use(context.Background())
+	ds, err := g.NewDatastore(ctx)
+	g.Ok(t, err)
 
 	hoge := hoge()
-
-	err := ds.Put(&hoge)
-	g.Ok(t, err)
+	g.Ok(t, ds.Put(&hoge))
 
 	hogehoge := Hogehoge{
 		ID: "abcdefg",
 	}
 
-	err = ds.Get(&hogehoge)
-	g.Ok(t, err)
+	g.Ok(t, ds.Get(&hogehoge))
 	g.Equals(t, hoge, hogehoge)
 
-	err = ds.Del(&hoge)
-	g.Ok(t, err)
+	g.Ok(t, ds.Delete(&hoge))
 
 	e := "datastore: no such entity"
-	err = ds.Get(&hoge)
-	g.Equals(t, e, err.Error())
+	g.Equals(t, e, ds.Get(&hoge).Error())
 }
 
-func TestGetNamespace(t *testing.T) {
-	g := New()
-
-	_, ctx, spinDwon := SpinUp(t)
-	defer spinDwon()
-
-	ds := g.NewDatastore(ctx)
-
-	a := "Hogehoge"
-	b := ds.GetNamespace(hoge())
-	g.Equals(t, a, b)
+func TestUseMemcache(t *testing.T) {
+	// TODO: 実装
 }
 
-func TestSearchQuerySet(t *testing.T) {
+func TestNewQuery(t *testing.T) {
+	t.Parallel()
+
 	g := New()
 
-	_, ctx, spinDwon := SpinUp(t)
-	defer spinDwon()
-
-	ds := g.NewDatastore(ctx)
-	hoge := hoge()
-
-	sq := g.NewSeachQuery()
-
-	namespace := ds.GetNamespace(hoge)
-	sq.Kind = namespace
-	g.Equals(t, namespace, sq.Kind)
-
-	order := "ID"
-	var orders []string
-	orders = append(orders, order)
-	sq.SetOrder(order)
-	g.Equals(t, orders, sq.Orders)
-
-	limit := 10
-	sq.SetLimit(limit)
-	g.Equals(t, limit, sq.Limit)
-
-	filter := SearchFilter{
-		Key:   "ID =",
-		Value: "abcdefg",
-	}
-	var filters []SearchFilter
-	filters = append(filters, filter)
-	sq.AppendFilter(filter)
-	g.Equals(t, filters, sq.Filters)
-
-	err := ds.Put(&hoge)
+	ctx := memory.Use(context.Background())
+	ds, err := g.NewDatastore(ctx)
 	g.Ok(t, err)
 
-	q, err := sq.GetQuery()
-	g.Ok(t, err)
-
-	var data Hogehoges
-	_, err = ds.Goon.GetAll(&q, &data)
-	g.Ok(t, err)
-	g.Equals(t, 1, len(data))
+	exp := ds.NewQuery("Hogehoge")
+	act := ds.NewQuery(hoge())
+	g.Equals(t, exp, act)
 }
 
 func TestPutMulti(t *testing.T) {
+	t.Parallel()
+
 	g := New()
 
-	_, ctx, spindown := SpinUp(t)
-	defer spindown()
+	ctx := memory.Use(context.Background())
+	ds, err := g.NewDatastore(ctx)
+	g.Ok(t, err)
 
-	ds := g.NewDatastore(ctx)
-
-	var hogehoges []Hogehoge
+	hogehoges := []Hogehoge{}
 	count := 1000
 	for i := 0; i < count; i++ {
 		hoge := hoge()
 		hoge.ID = "id" + strconv.Itoa(i)
 		hogehoges = append(hogehoges, hoge)
 	}
-	keys, err := ds.PutMulti(&hogehoges)
-	g.Ok(t, err)
-	g.Equals(t, count, len(keys))
+
+	g.Ok(t, ds.Put(hogehoges))
 }
 
-func TestGetBindAll(t *testing.T) {
+func TestBuildQuery(t *testing.T) {
+	t.Parallel()
+
 	g := New()
 
-	_, ctx, spindown := SpinUp(t)
-	defer spindown()
-
-	ds := g.NewDatastore(ctx)
-
-	var hogehoges []Hogehoge
-	hogehoges = append(hogehoges, Hogehoge{ID: "a", Abcd: "hogehoge", Efg: 10})
-	hogehoges = append(hogehoges, Hogehoge{ID: "b", Abcd: "hogehoge", Efg: 0})
-	hogehoges = append(hogehoges, Hogehoge{ID: "c", Abcd: "", Efg: 10})
-	hogehoges = append(hogehoges, Hogehoge{ID: "d", Abcd: "", Efg: 0})
-	hogehoges = append(hogehoges, Hogehoge{ID: "e", Abcd: "hugahuga", Efg: 1})
-	keys, err := ds.PutMulti(&hogehoges)
+	ctx := memory.Use(context.Background())
+	ds, err := g.NewDatastore(ctx)
 	g.Ok(t, err)
-	g.Equals(t, len(hogehoges), len(keys))
 
-	sq := g.NewSeachQuery()
-	namespace := ds.GetNamespace(Hogehoge{})
-	sq.Kind = namespace
+	query := ds.NewQuery("test")
 
-	var filters []SearchFilter
-	filters = append(filters, SearchFilter{Key: "Abcd =", Value: "hogehoge"})
-	filters = append(filters, SearchFilter{Key: "Efg =", Value: 10})
+	var tests = []struct {
+		qv  QueryVars
+		act *datastore.Query
+	}{
+		{qv: QueryVars{Limit: 10, Offset: 5, Order: []string{"-Create"}}, act: query.Limit(10).Offset(5).Order("-Create")},
+		{qv: QueryVars{Order: []string{"-Create", "-Updated"}}, act: query.Order("-Create").Order("-Updated")},
+		{qv: QueryVars{Limit: 10, Offset: 0, Order: []string{"-Create"}}, act: query.Limit(10).Offset(0).Order("-Create")},
+	}
 
-	keys, err = ds.GetBindAll(sq, filters, &hogehoges)
-	g.Ok(t, err)
-	g.Equals(t, 3, len(keys))
-
+	for i, test := range tests {
+		exp, err := ds.BuildQuery("test", test.qv)
+		g.Ok(t, err)
+		g.EqualsWithNumber(t, i, exp, test.act)
+	}
 }
 
-func TestDelAll(t *testing.T) {
+func TestBuildQueryOperator(t *testing.T) {
+	t.Parallel()
+
 	g := New()
 
-	_, ctx, spindown := SpinUp(t)
-	defer spindown()
-
-	ds := g.NewDatastore(ctx)
-
-	var hoge Hogehoge
-	namespace := ds.GetNamespace(hoge)
-	err := ds.DelAll(namespace)
+	ctx := memory.Use(context.Background())
+	ds, err := g.NewDatastore(ctx)
 	g.Ok(t, err)
 
-	sq := g.NewSeachQuery()
-	sq.SetKind(namespace)
-	q, err := sq.GetQuery()
-	g.Ok(t, err)
+	query := ds.NewQuery("test")
 
-	var hogehoges Hogehoges
-	q.KeysOnly()
-	keys, err := ds.Goon.GetAll(&q, &hogehoges)
-	g.Equals(t, 0, len(keys))
+	var tests = []struct {
+		operator string
+		act      *datastore.Query
+	}{
+		{operator: "=", act: query.Eq("key", "value")},
+		{operator: ">", act: query.Lt("key", "value")},
+		{operator: ">=", act: query.Lte("key", "value")},
+		{operator: "=>", act: query.Lte("key", "value")},
+		{operator: "<", act: query.Gt("key", "value")},
+		{operator: "<=", act: query.Gte("key", "value")},
+		{operator: "=<", act: query.Gte("key", "value")},
+	}
 
+	for i, test := range tests {
+		filter := Filter{Field: "key", Operator: test.operator, Value: "value"}
+		qv := QueryVars{}
+		qv.Filter = append(qv.Filter, filter)
+		exp, err := ds.BuildQuery("test", qv)
+		g.Ok(t, err)
+		g.EqualsWithNumber(t, i, exp, test.act)
+	}
 }

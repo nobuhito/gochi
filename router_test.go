@@ -1,15 +1,12 @@
 package gochi
 
 import (
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"sort"
 	"strings"
 	"testing"
-
-	"golang.org/x/net/context"
 
 	"github.com/gorilla/mux"
 )
@@ -54,8 +51,8 @@ func TestParamKeys(t *testing.T) {
 		g.Ok(t, err)
 
 		exp := test.keys
-		act := fmt.Sprintf("%s", body)
-		g.Assert(t, exp == act, "\n %v)\t    exp: \"%+v\"\n\tbut got: \"%+v\"", i+1, exp, act)
+		act := strings.TrimSpace(string(body))
+		g.EqualsWithNumber(t, i, exp, act)
 	}
 
 }
@@ -102,27 +99,10 @@ func TestVars(t *testing.T) {
 		g.Ok(t, err)
 
 		exp := test.val
-		act := fmt.Sprintf("%s", body)
-		g.Assert(t, exp == act, "\n %v)\t    exp: \"%+v\"\n\tbut got: \"%+v\"", i+1, exp, act)
+		act := strings.TrimSpace(string(body))
+		g.EqualsWithNumber(t, i, exp, act)
+		// g.Assert(t, exp == act, "\n %v)\t    exp: \"%+v\"\n\tbut got: \"%+v\"", i+1, exp, act)
 	}
-}
-
-func paramKeysHandler(w http.ResponseWriter, r *http.Request) {
-	g := New()
-	keys := g.ParamKeys(r)
-	sort.Strings(keys)
-	w.Write([]byte(strings.Join(keys, ", ")))
-}
-
-func nilHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write(nil)
-}
-
-func varsHandler(w http.ResponseWriter, r *http.Request) {
-	g := New()
-	key := g.Vars(r, "key")
-	val := g.Vars(r, key)
-	w.Write([]byte(val))
 }
 
 func TestStatic(t *testing.T) {
@@ -141,7 +121,7 @@ func TestStatic(t *testing.T) {
 		{"/foo/bar", "404 page not found"},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
 		res, err := http.Get(server.URL + test.path)
 		g.Ok(t, err)
 		defer res.Body.Close()
@@ -149,29 +129,71 @@ func TestStatic(t *testing.T) {
 		body, err := ioutil.ReadAll(res.Body)
 		g.Ok(t, err)
 
-		ret := strings.TrimSpace(fmt.Sprintf("%s", body))
-		g.Equals(t, test.out, ret)
+		act := strings.TrimSpace(string(body))
+
+		g.EqualsWithNumber(t, i, test.out, act)
 	}
 }
 
 func TestGroupPath(t *testing.T) {
 	g := New()
 
-	inst, _, spindown := SpinUp(t)
-	defer spindown()
-
-	req, err := inst.NewRequest("GET", "/api/test", nil)
-	g.Ok(t, err)
-
-	w := httptest.NewRecorder()
-
 	grp := g.Group("/api")
 	grp.GET("/test", handler)
-	g.Router.ServeHTTP(w, req)
-	g.Equals(t, "{\"id\":\"abcdefg\"}", w.Body.String())
+
+	server := httptest.NewServer(g.Router)
+	defer server.Close()
+
+	res, err := http.Get(server.URL + "/api/test/")
+	g.Ok(t, err)
+	defer res.Body.Close()
+
+	body, err := ioutil.ReadAll(res.Body)
+	g.Ok(t, err)
+
+	g.Equals(t, "{\"id\":\"abcdefg\"}", string(body))
 }
 
-func handler(ctx context.Context, r *http.Request) Response {
+func TestMakeRes(t *testing.T) {
+	g := New()
+
+	g.GET("/test", handlerJSON)
+
+	server := httptest.NewServer(g.Router)
+	defer server.Close()
+
+	res, err := http.Get(server.URL + "/test/")
+	g.Ok(t, err)
+	defer res.Body.Close()
+
+	body, err := ioutil.ReadAll(res.Body)
+	g.Ok(t, err)
+
+	act := string(body)
+	g.Equals(t, "{\"id\":\"abcdefg\",\"value\":\"hijklmn\"}", act)
+}
+
+func paramKeysHandler(w http.ResponseWriter, r *http.Request) {
+	g := New()
+
+	keys := g.ParamKeys(r)
+	sort.Strings(keys)
+	w.Write([]byte(strings.Join(keys, ", ")))
+}
+
+func nilHandler(w http.ResponseWriter, r *http.Request) {
+	w.Write(nil)
+}
+
+func varsHandler(w http.ResponseWriter, r *http.Request) {
+	g := New()
+
+	key := g.Vars(r, "key")
+	val := g.Vars(r, key)
+	w.Write([]byte(val))
+}
+
+func handler(r *http.Request) Response {
 	success := struct {
 		ID string `json:"id"`
 	}{ID: "abcdefg"}
@@ -180,40 +202,7 @@ func handler(ctx context.Context, r *http.Request) Response {
 	return res
 }
 
-func TestJSONWriter(t *testing.T) {
-	g := New()
-
-	inst, _, spindown := SpinUp(t)
-	defer spindown()
-
-	req, err := inst.NewRequest("GET", "/test", nil)
-	g.Ok(t, err)
-
-	w := httptest.NewRecorder()
-
-	g.GET("/test", handler)
-	g.Router.ServeHTTP(w, req)
-	g.Equals(t, "{\"id\":\"abcdefg\"}", w.Body.String())
-}
-
-func TestMakeRes(t *testing.T) {
-	g := New()
-
-	inst, _, spindown := SpinUp(t)
-	defer spindown()
-
-	req, err := inst.NewRequest("GET", "/test", nil)
-	g.Ok(t, err)
-
-	w := httptest.NewRecorder()
-
-	g.GET("/test", handlerJSON)
-	g.Router.ServeHTTP(w, req)
-	_, out := testJSON()
-	g.Equals(t, out, w.Body.String())
-}
-
-func handlerJSON(ctx context.Context, r *http.Request) Response {
+func handlerJSON(r *http.Request) Response {
 	response := ResponseJSON(http.StatusOK, retJSON())
 	return response
 }
