@@ -1,23 +1,22 @@
 package gochi
 
 import (
-	"github.com/luci/gae/service/info"
 	"golang.org/x/net/context"
 
 	"google.golang.org/appengine/search"
 )
 
-type FullTextSearchContent struct {
-	ID   string
-	HTML search.HTML
-}
+// type FullTextSearchContent struct {
+// 	ID   string
+// 	HTML search.HTML
+// }
 
-func (g *Gochi) NewFullTextSearchContents(id string) FullTextSearchContent {
-	return FullTextSearchContent{
-		ID:   id,
-		HTML: "",
-	}
-}
+// func (g *Gochi) NewFullTextSearchContents(id string) FullTextSearchContent {
+// 	return FullTextSearchContent{
+// 		ID:   id,
+// 		HTML: "",
+// 	}
+// }
 
 type FullTextSearch struct {
 	Namespace string
@@ -31,18 +30,13 @@ func (g *Gochi) NewFullTextSearch(ctx context.Context, namespace string) FullTex
 	}
 }
 
-func (s *FullTextSearch) Put(content *FullTextSearchContent) error {
-	if info := info.GetTestable(s.Context); info != nil { // テスト時は機能させない
-		return nil
-	}
-
+func (s *FullTextSearch) Put(id string, dst interface{}) error {
 	index, err := search.Open(s.Namespace)
 	if err != nil {
 		return err
 	}
 
-	//c := appengine.NewContext(s.Request)
-	_, err = index.Put(s.Context, content.ID, content)
+	id, err = index.Put(s.Context, id, dst)
 	if err != nil {
 		return err
 	}
@@ -50,31 +44,26 @@ func (s *FullTextSearch) Put(content *FullTextSearchContent) error {
 	return nil
 }
 
-func (s *FullTextSearch) Get(id string) (FullTextSearchContent, error) {
-	if info := info.GetTestable(s.Context); info != nil { // テスト時は機能させない
-		return FullTextSearchContent{}, nil
-	}
-
-	var content FullTextSearchContent
+func (s *FullTextSearch) Get(id string, dst interface{}) error {
 
 	index, err := search.Open(s.Namespace)
 	if err != nil {
-		return content, ErrorWrap(err)
+		return ErrorWrap(err)
 	}
 
-	// c := appengine.NewContext(s.Request)
-	err = index.Get(s.Context, id, &content)
+	err = index.Get(s.Context, id, dst)
 	if err != nil {
-		return content, ErrorWrap(err)
+		return ErrorWrap(err)
 	}
 
-	return content, nil
+	return nil
 }
 
-func (s *FullTextSearch) Search(query string) (ids []string, err error) {
-	if info := info.GetTestable(s.Context); info != nil { // テスト時は機能させない
-		return []string{}, nil
-	}
+func (s *FullTextSearch) Search(query string, dst interface{}) (ids []string, err error) {
+	return s.SearchWithOptions(query, dst, nil)
+}
+
+func (s *FullTextSearch) SearchWithOptions(query string, dst interface{}, options *search.SearchOptions) (ids []string, err error) {
 
 	var results []string
 	index, err := search.Open(s.Namespace)
@@ -82,11 +71,9 @@ func (s *FullTextSearch) Search(query string) (ids []string, err error) {
 		return results, ErrorWrap(err)
 	}
 
-	// c := appengine.NewContext(s.Request)
-	for item := index.Search(s.Context, query, nil); ; {
+	for item := index.Search(s.Context, query, options); ; {
 		var id string
-		var content FullTextSearchContent
-		id, err = item.Next(&content)
+		id, err = item.Next(dst)
 		if err == search.Done {
 			break
 		}
@@ -100,16 +87,11 @@ func (s *FullTextSearch) Search(query string) (ids []string, err error) {
 	return results, nil
 }
 
-func (s *FullTextSearch) Del(content *FullTextSearchContent) error {
-	if info := info.GetTestable(s.Context); info != nil { // テスト時は機能させない
-		return nil
-	}
-
+func (s *FullTextSearch) Del(id string) error {
 	index, err := search.Open(s.Namespace)
 	if err != nil {
 		return err
 	}
 
-	// c := appengine.NewContext(s.Request)
-	return index.Delete(s.Context, content.ID)
+	return index.Delete(s.Context, id)
 }
