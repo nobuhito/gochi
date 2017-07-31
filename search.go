@@ -59,16 +59,16 @@ func (s *FullTextSearch) Get(id string, dst interface{}) error {
 	return nil
 }
 
-func (s *FullTextSearch) Search(query string, dst interface{}) (ids []string, err error) {
+func (s *FullTextSearch) Search(query string, dst interface{}) (ids []string, cursor search.Cursor, err error) {
 	return s.SearchWithOptions(query, dst, nil)
 }
 
-func (s *FullTextSearch) SearchWithOptions(query string, dst interface{}, options *search.SearchOptions) (ids []string, err error) {
+func (s *FullTextSearch) SearchWithOptions(query string, dst interface{}, options *search.SearchOptions) (ids []string, cursor search.Cursor, err error) {
 
-	var results []string
+	// var results []string
 	index, err := search.Open(s.Namespace)
 	if err != nil {
-		return results, ErrorWrap(err)
+		return ids, cursor, ErrorWrap(err)
 	}
 
 	for item := index.Search(s.Context, query, options); ; {
@@ -78,13 +78,14 @@ func (s *FullTextSearch) SearchWithOptions(query string, dst interface{}, option
 			break
 		}
 		if err != nil {
-			return results, ErrorWrap(err)
+			return ids, cursor, ErrorWrap(err)
 		}
 
-		results = append(results, id)
+		ids = append(ids, id)
+		cursor = item.Cursor()
 	}
 
-	return results, nil
+	return ids, cursor, nil
 }
 
 func (s *FullTextSearch) Del(id string) error {
