@@ -1,22 +1,23 @@
 package gochi
 
 import (
+	"go.chromium.org/gae/service/info"
 	"golang.org/x/net/context"
 
 	"google.golang.org/appengine/search"
 )
 
-// type FullTextSearchContent struct {
-// 	ID   string
-// 	HTML search.HTML
-// }
+type FullTextSearchContent struct {
+	ID   string
+	HTML search.HTML
+}
 
-// func (g *Gochi) NewFullTextSearchContents(id string) FullTextSearchContent {
-// 	return FullTextSearchContent{
-// 		ID:   id,
-// 		HTML: "",
-// 	}
-// }
+func (g *Gochi) NewFullTextSearchContents(id string) FullTextSearchContent {
+	return FullTextSearchContent{
+		ID:   id,
+		HTML: "",
+	}
+}
 
 type FullTextSearch struct {
 	Namespace string
@@ -30,13 +31,18 @@ func (g *Gochi) NewFullTextSearch(ctx context.Context, namespace string) FullTex
 	}
 }
 
-func (s *FullTextSearch) Put(id string, dst interface{}) error {
+func (s *FullTextSearch) Put(content *FullTextSearchContent) error {
+	if info := info.GetTestable(s.Context); info != nil { // テスト時は機能させない
+		return nil
+	}
+
 	index, err := search.Open(s.Namespace)
 	if err != nil {
 		return err
 	}
 
-	id, err = index.Put(s.Context, id, dst)
+	//c := appengine.NewContext(s.Request)
+	_, err = index.Put(s.Context, content.ID, content)
 	if err != nil {
 		return err
 	}
@@ -44,55 +50,66 @@ func (s *FullTextSearch) Put(id string, dst interface{}) error {
 	return nil
 }
 
-func (s *FullTextSearch) Get(id string, dst interface{}) error {
+func (s *FullTextSearch) Get(id string) (FullTextSearchContent, error) {
+	if info := info.GetTestable(s.Context); info != nil { // テスト時は機能させない
+		return FullTextSearchContent{}, nil
+	}
+
+	var content FullTextSearchContent
 
 	index, err := search.Open(s.Namespace)
 	if err != nil {
-		return ErrorWrap(err)
+		return content, ErrorWrap(err)
 	}
 
-	err = index.Get(s.Context, id, dst)
+	// c := appengine.NewContext(s.Request)
+	err = index.Get(s.Context, id, &content)
 	if err != nil {
-		return ErrorWrap(err)
+		return content, ErrorWrap(err)
 	}
 
-	return nil
+	return content, nil
 }
 
-func (s *FullTextSearch) Search(query string, dst interface{}) (ids []string, cursor search.Cursor, err error) {
-	return s.SearchWithOptions(query, dst, nil)
-}
+func (s *FullTextSearch) Search(query string) (ids []string, err error) {
+	if info := info.GetTestable(s.Context); info != nil { // テスト時は機能させない
+		return []string{}, nil
+	}
 
-func (s *FullTextSearch) SearchWithOptions(query string, dst interface{}, options *search.SearchOptions) (ids []string, cursor search.Cursor, err error) {
-
-	// var results []string
+	var results []string
 	index, err := search.Open(s.Namespace)
 	if err != nil {
-		return ids, cursor, ErrorWrap(err)
+		return results, ErrorWrap(err)
 	}
 
-	for item := index.Search(s.Context, query, options); ; {
+	// c := appengine.NewContext(s.Request)
+	for item := index.Search(s.Context, query, nil); ; {
 		var id string
-		id, err = item.Next(dst)
+		var content FullTextSearchContent
+		id, err = item.Next(&content)
 		if err == search.Done {
 			break
 		}
 		if err != nil {
-			return ids, cursor, ErrorWrap(err)
+			return results, ErrorWrap(err)
 		}
 
-		ids = append(ids, id)
-		cursor = item.Cursor()
+		results = append(results, id)
 	}
 
-	return ids, cursor, nil
+	return results, nil
 }
 
-func (s *FullTextSearch) Del(id string) error {
+func (s *FullTextSearch) Del(content *FullTextSearchContent) error {
+	if info := info.GetTestable(s.Context); info != nil { // テスト時は機能させない
+		return nil
+	}
+
 	index, err := search.Open(s.Namespace)
 	if err != nil {
 		return err
 	}
 
-	return index.Delete(s.Context, id)
+	// c := appengine.NewContext(s.Request)
+	return index.Delete(s.Context, content.ID)
 }

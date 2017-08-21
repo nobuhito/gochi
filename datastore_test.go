@@ -3,13 +3,12 @@
 package gochi
 
 import (
+	"context"
 	"strconv"
 	"testing"
 
-	"golang.org/x/net/context"
-
-	"github.com/luci/gae/impl/memory"
-	"github.com/luci/gae/service/datastore"
+	"go.chromium.org/gae/impl/memory"
+	"go.chromium.org/gae/service/datastore"
 )
 
 type Hogehoge struct {

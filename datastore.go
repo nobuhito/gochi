@@ -3,8 +3,10 @@ package gochi
 import (
 	"reflect"
 
-	"github.com/luci/gae/filter/dscache"
-	"github.com/luci/gae/service/datastore"
+	"google.golang.org/appengine/log"
+
+	"go.chromium.org/gae/filter/dscache"
+	"go.chromium.org/gae/service/datastore"
 	"golang.org/x/net/context"
 )
 
@@ -58,6 +60,8 @@ func (ds *Datastore) GetAll(q *datastore.Query, data interface{}) error {
 	}
 
 	err := datastore.GetAll(ctx, q, data)
+	log.Debugf(ctx, "%+v\n", q)
+	log.Debugf(ctx, "%+v\n", data)
 	return err
 }
 
