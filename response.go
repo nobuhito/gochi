@@ -1,13 +1,12 @@
 package gochi
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 
 	"github.com/luci/luci-go/common/logging"
-
-	"golang.org/x/net/context"
 )
 
 type Response interface {

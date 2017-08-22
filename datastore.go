@@ -1,13 +1,13 @@
 package gochi
 
 import (
+	"context"
 	"reflect"
 
 	"google.golang.org/appengine/log"
 
 	"go.chromium.org/gae/filter/dscache"
 	"go.chromium.org/gae/service/datastore"
-	"golang.org/x/net/context"
 )
 
 type Datastore struct {

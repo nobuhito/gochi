@@ -1,16 +1,15 @@
 package gochi
 
 import (
+	"context"
 	"net/http"
 	"os"
 
-	"golang.org/x/net/context"
-
 	"github.com/gorilla/mux"
-	"go.chromium.org/gae/impl/memory"
-	"go.chromium.org/gae/impl/prod"
 	"github.com/luci/luci-go/common/logging"
 	"github.com/pkg/errors"
+	"go.chromium.org/gae/impl/memory"
+	"go.chromium.org/gae/impl/prod"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/log"
 )

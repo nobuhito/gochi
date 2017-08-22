@@ -1,7 +1,7 @@
 package gochi
 
 import (
-	"golang.org/x/net/context"
+	"context"
 
 	"google.golang.org/appengine/search"
 )
@@ -31,9 +31,9 @@ func (g *Gochi) NewFullTextSearch(ctx context.Context, namespace string) FullTex
 }
 
 func (s *FullTextSearch) Put(id string, dst interface{}) error {
-//	if info := info.GetTestable(s.Context); info != nil { // テスト時は機能させない
-//		return nil
-//	}
+	//	if info := info.GetTestable(s.Context); info != nil { // テスト時は機能させない
+	//		return nil
+	//	}
 
 	index, err := search.Open(s.Namespace)
 	if err != nil {
@@ -50,11 +50,11 @@ func (s *FullTextSearch) Put(id string, dst interface{}) error {
 }
 
 func (s *FullTextSearch) Get(id string, dst interface{}) error {
-//	if info := info.GetTestable(s.Context); info != nil { // テスト時は機能させない
-//		return FullTextSearchContent{}, nil
-//	}
+	//	if info := info.GetTestable(s.Context); info != nil { // テスト時は機能させない
+	//		return FullTextSearchContent{}, nil
+	//	}
 
-//	var content FullTextSearchContent
+	//	var content FullTextSearchContent
 
 	index, err := search.Open(s.Namespace)
 	if err != nil {
@@ -75,9 +75,9 @@ func (s *FullTextSearch) Search(query string, dst interface{}) (ids []string, cu
 }
 
 func (s *FullTextSearch) SearchWithOptions(query string, dst interface{}, options *search.SearchOptions) (ids []string, cursor search.Cursor, err error) {
-//	if info := info.GetTestable(s.Context); info != nil { // テスト時は機能させない
-//		return []string{}, nil
-//	}
+	//	if info := info.GetTestable(s.Context); info != nil { // テスト時は機能させない
+	//		return []string{}, nil
+	//	}
 
 	// var results []string
 	index, err := search.Open(s.Namespace)
@@ -104,9 +104,9 @@ func (s *FullTextSearch) SearchWithOptions(query string, dst interface{}, option
 }
 
 func (s *FullTextSearch) Del(id string) error {
-//	if info := info.GetTestable(s.Context); info != nil { // テスト時は機能させない
-//		return nil
-//	}
+	//	if info := info.GetTestable(s.Context); info != nil { // テスト時は機能させない
+	//		return nil
+	//	}
 
 	index, err := search.Open(s.Namespace)
 	if err != nil {

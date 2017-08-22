@@ -1,9 +1,8 @@
 package gochi
 
 import (
+	"context"
 	"testing"
-
-	"golang.org/x/net/context"
 
 	"github.com/favclip/testerator"
 	"google.golang.org/appengine/aetest"

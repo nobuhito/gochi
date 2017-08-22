@@ -1,9 +1,8 @@
 package gochi
 
 import (
+	"context"
 	"io/ioutil"
-
-	"golang.org/x/net/context"
 
 	"cloud.google.com/go/storage"
 	"google.golang.org/appengine/file"
