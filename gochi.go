@@ -7,10 +7,10 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
 	"go.chromium.org/gae/impl/memory"
 	"go.chromium.org/gae/impl/prod"
-	"github.com/luci/luci-go/common/logging"
-	"github.com/pkg/errors"
+	"go.chromium.org/luci/common/logging"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/log"
 )
