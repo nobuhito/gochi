@@ -52,7 +52,7 @@ func TestDatastoreCRUD(t *testing.T) {
 }
 
 func TestUseMemcache(t *testing.T) {
-	// TODO: å®Ÿè£…
+	// TODO: å®ÞæŽ¡¡¦
 }
 
 func TestNewQuery(t *testing.T) {
